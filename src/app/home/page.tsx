@@ -1,9 +1,16 @@
 "use client";
 import { useEffect, useState } from "react"
 import DialogComponent from "../components/dialog"
-import { Button, Drawer, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material"
+import { Button, Drawer, MenuItem, Select, TextField } from "@mui/material"
 import { fetcher } from "../utils/request";
 import { SelectChangeEvent, SelectInputProps } from "@mui/material/Select/SelectInput";
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import Grid from '@mui/material/Grid2';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { blue } from '@mui/material/colors';
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
 
 type dialogStatus = 1 | 2 | 3 | 4 // 1:add task 2:add status 3:update task 4:update status
 type taskInfo = {
@@ -40,6 +47,7 @@ const HomePage: React.FC = () => {
     const [drawerOpen, setDrawerOpen] = useState<boolean>(false)
     const [dialogStatus, setDialogStatus] = useState<dialogStatus>(1)
     const [statusList, setStatusList] = useState<statusList>()
+    const [userName, setUserName] = useState<any>('')
 
     const [taskInfo, setTaskInfo] = useState<taskInfo>({
         _id: '',
@@ -55,6 +63,10 @@ const HomePage: React.FC = () => {
     })
 
     const [taskList, setTaskList] = useState<taskList>()
+
+    useEffect(() => {
+        setUserName(localStorage.getItem('userName'))
+    }, [])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -229,110 +241,151 @@ const HomePage: React.FC = () => {
 
     return (
         <div>
-            <Button onClick={() => { openDialog(1) }}>Add task</Button>
-            <Button onClick={() => { controlDrawer(true) }}>Status</Button>
-            <DialogComponent
-                isOpen={open}
-                onClose={closeDialog}
-                title={dialogStatus === 1 || dialogStatus === 3 ? 'Task' : 'Status'}
-                content={
-                    <form
-                        onSubmit={submit}
-                    >
-                        {dialogStatus === 1 || dialogStatus === 3 ?
-                            <div>
-                                <FormControl>
-                                    <TextField
-                                        required
-                                        id="taskName"
-                                        name="taskName"
-                                        type="text"
-                                        margin="dense"
-                                        label="TaskName"
-                                        fullWidth
-                                        value={taskInfo.taskName}
-                                        onChange={taskNameChange}
-                                    />
-                                    <InputLabel id="selectStatus">Status</InputLabel>
-                                    <Select
-                                        labelId="selectStatus"
-                                        id="selectStatus"
-                                        value={taskInfo.status}
-                                        label=""
-                                        onChange={statusSelectChange}
-                                    >
-                                        {
-                                            statusList?.map((value, index) => {
-                                                return <MenuItem key={index} value={value._id}>{value.name}</MenuItem>
-                                            })
-                                        }
-                                    </Select>
-                                    <input
-                                        type="date"
-                                        value={taskInfo.deadline}
-                                        onChange={deadlineChange}
-                                    ></input>
-                                </FormControl>
-                            </div>
-                            :
-                            <div>
-                                <FormControl>
-                                    <TextField
-                                        required
-                                        id="statusName"
-                                        name="statusName"
-                                        type="text"
-                                        // variant="outlined"
-                                        margin="dense"
-                                        label="statusName"
-                                        fullWidth
-                                        value={statusInfo.name}
-                                        onChange={statusNameChange}
-                                    />
-                                    <input
-                                        name="color"
-                                        type="color"
-                                        value={statusInfo.color}
-                                        onChange={colorChange}></input>
-                                </FormControl>
-                            </div>
+            <header className="h-[50px] border-b border-gray-400 bg-gray-50 flex items-center justify-between pr-8 pl-8">
+                <div className="todo-logo">TODO</div>
+                <div className=" flex items-center">
+                    <div className="mr-2 text-xl">{userName}</div>
+                    <AccountCircleIcon className="h-[40px] w-[40px]" />
+                </div>
+            </header>
+            <div className="w-full h-[calc(100vh-50px)] overflow-auto ">
+                <div className="h-16 flex justify-end items-center pl-4 pr-4">
+                    <Button variant="contained" onClick={() => { openDialog(1) }} className="mr-4">Add task</Button>
+                    <Button variant="contained" onClick={() => { controlDrawer(true) }}>Status</Button>
+                </div>
+
+                <Grid container spacing={4} className="w-full overflow-auto pl-4 pr-4">
+                    {
+                        taskList?.map((v, i) => {
+                            return <Grid
+                                key={i}
+                                // style={{
+                                //     backgroundColor: v.status.color,
+
+                                // }}
+                                className="h-[120px] flex bg-gray-200" size={4}>
+                                <div className="h-[120px] w-[30px]" style={{ backgroundColor: v.status.color }}></div>
+                                <div className="flex justify-between w-full p-3">
+                                    <div className="flex flex-col justify-between font-bold ">
+                                        <div style={{ color: '#1976d2' }} className="text-xl">{v.taskName}</div>
+                                        <div>
+                                            <span style={{ color: '#1976d2' }}>status: </span>
+                                            {v.status.name}
+                                        </div>
+                                        <div>
+                                            <span style={{ color: '#1976d2' }}>deadline: </span>
+                                            {v.deadline.toString().split('T')[0]}</div>
+                                    </div>
+                                    <div className="flex flex-col justify-around items-center">
+                                        <SettingsIcon sx={{ color: blue[700] }} onClick={() => { changeTask(v._id) }}></SettingsIcon>
+                                        <DeleteIcon sx={{ color: blue[700] }} onClick={() => { deleteTask(v._id) }}></DeleteIcon>
+                                    </div>
+                                </div>
+                            </Grid>
+                        })
+                    }
+                </Grid>
+
+                <DialogComponent
+                    isOpen={open}
+                    onClose={closeDialog}
+                    title={dialogStatus === 1 || dialogStatus === 3 ? 'Task' : 'Status'}
+                    content={
+                        <form
+                            onSubmit={submit}
+                        >
+                            {dialogStatus === 1 || dialogStatus === 3 ?
+                                <div>
+                                    <FormControl fullWidth>
+                                        <TextField
+                                            required
+                                            id="taskName"
+                                            name="taskName"
+                                            type="text"
+                                            margin="dense"
+                                            label="TaskName"
+                                            fullWidth
+                                            value={taskInfo.taskName}
+                                            onChange={taskNameChange}
+                                        />
+                                        <InputLabel id="selectStatus">Status</InputLabel>
+                                        <Select
+                                            labelId="selectStatus"
+                                            id="selectStatus"
+                                            value={taskInfo.status}
+                                            label=""
+                                            onChange={statusSelectChange}
+                                        >
+                                            {
+                                                statusList?.map((value, index) => {
+                                                    return <MenuItem key={index} value={value._id}>{value.name}</MenuItem>
+                                                })
+                                            }
+                                        </Select>
+                                        <input
+                                            type="date"
+                                            value={taskInfo.deadline}
+                                            onChange={deadlineChange}
+                                        ></input>
+                                    </FormControl>
+                                </div>
+                                :
+                                <div>
+                                    <FormControl>
+                                        <TextField
+                                            required
+                                            id="statusName"
+                                            name="statusName"
+                                            type="text"
+                                            // variant="outlined"
+                                            margin="dense"
+                                            label="statusName"
+                                            fullWidth
+                                            value={statusInfo.name}
+                                            onChange={statusNameChange}
+                                        />
+                                        <input
+                                            name="color"
+                                            type="color"
+                                            value={statusInfo.color}
+                                            onChange={colorChange}></input>
+                                    </FormControl>
+                                </div>
+                            }
+                            <Button onClick={closeDialog}>CANCEL</Button>
+                            <Button type="submit">SUBMIT</Button>
+                        </form>
+                    }
+                ></DialogComponent>
+
+                <Drawer
+                    open={drawerOpen}
+                    onClose={() => { controlDrawer(false) }}
+                    anchor={'right'}>
+                    <div className="w-[300px] p-3">
+                        <Button variant="contained" onClick={() => { openDialog(2) }}>Add status</Button>
+                        {
+                            statusList?.map((v, i) => {
+                                return <div key={i} className="bg-gray-100 mt-4 rounded p-3 flex justify-between items-center">
+                                    <div>
+                                        <div>
+                                            <span style={{ color: '#1976d2' }}>status: </span>
+                                            {v.name}
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span style={{ color: '#1976d2' }}>color: </span>
+                                            <div style={{ backgroundColor: v.color }} className="w-[40px] h-[16px] ml-3"></div>
+                                        </div>
+                                    </div>
+                                    <SettingsIcon sx={{ color: blue[700] }} onClick={() => { changeUpdate(v._id) }}></SettingsIcon>
+                                    {/* <Button onClick={() => { changeUpdate(v._id) }}>update</Button> */}
+                                    {/* <Button onClick={() => { deleteStatus(v._id) }}>delete</Button> */}
+                                </div>
+                            })
                         }
-                        <Button onClick={closeDialog}>CANCEL</Button>
-                        <Button type="submit">SUBMIT</Button>
-                    </form>
-                }
-            ></DialogComponent>
-
-            <div>
-                {
-                    taskList?.map((v, i) => {
-                        return <div key={i} style={{ backgroundColor: v.status.color, width: '400px' }}>
-                            <div>{v.taskName}</div>
-                            <div>{v.status.name}</div>
-                            <div>{v.deadline.toString().split('T')[0]}</div>
-                            <Button onClick={() => { changeTask(v._id) }}>change</Button>
-                            <Button onClick={() => { deleteTask(v._id) }}>delete</Button>
-                        </div>
-                    })
-                }
+                    </div>
+                </Drawer>
             </div>
-
-            <Drawer
-                open={drawerOpen}
-                onClose={() => { controlDrawer(false) }}
-                anchor={'right'}>
-                <Button onClick={() => { openDialog(2) }}>Add status</Button>
-                {
-                    statusList?.map((v, i) => {
-                        return <div key={i}>
-                            <div>{v.name}</div>
-                            <div>{v.color}</div>
-                            <Button onClick={() => { changeUpdate(v._id) }}>update</Button>
-                            {/* <Button onClick={() => { deleteStatus(v._id) }}>delete</Button> */}
-                        </div>
-                    })
-                }
-            </Drawer>
         </div>
     )
 

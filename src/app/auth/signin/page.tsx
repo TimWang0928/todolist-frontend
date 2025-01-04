@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import style from './signin.module.scss'
-import { Input } from '@mui/material';
+import { FormControl, Input, TextField } from '@mui/material';
 import Button from '@mui/material/Button';
 import { fetcher } from '@/app/utils/request';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,8 @@ import { useRouter } from 'next/navigation';
 type response = {
     message: string,
     token: string,
-    userId:string
+    userId: string,
+    userName: string
 }
 
 const Signin: React.FC = () => {
@@ -29,6 +30,7 @@ const Signin: React.FC = () => {
         const result = await fetcher<response>('auth/login', 'post', body)
         localStorage.setItem('token', result.data.token)
         localStorage.setItem('userId', result.data.userId)
+        localStorage.setItem('userName', result.data.userName)
         router.push('/home')
     }
 
@@ -41,9 +43,14 @@ const Signin: React.FC = () => {
 
     return (
         <div className={style.main}>
-            <Input value={username} onChange={changeUsername} />
-            <Input value={password} type='password' onChange={changePassword} />
-            <Button onClick={signin}>Sing In</Button>
+            <div className={style.loginContainer}>
+                <h2>Login</h2>
+                <FormControl className='w-[320px]'>
+                    <TextField className={style.inputField} value={username} onChange={changeUsername} required />
+                    <TextField className={style.inputField} value={password} type='password' onChange={changePassword} required />
+                    <Button onClick={signin} className={style.loginButton}>Sing In</Button>
+                </FormControl>
+            </div>
         </div>
     )
 }
