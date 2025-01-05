@@ -11,6 +11,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { blue } from '@mui/material/colors';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import toast, { Toaster } from 'react-hot-toast';
 
 type dialogStatus = 1 | 2 | 3 | 4 // 1:add task 2:add status 3:update task 4:update status
 type taskInfo = {
@@ -70,8 +71,9 @@ const HomePage: React.FC = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            const result: taskList = (await fetcher<taskList>('todo/get', 'get', { userId: localStorage.getItem('userId') })).data
-            setTaskList(result)
+            // const result: taskList = (await fetcher<taskList>('todo/get', 'get', { userId: localStorage.getItem('userId') })).data
+            // setTaskList(result)
+            getTaskListData()
         }
         if (!open) {
             fetchData()
@@ -188,8 +190,9 @@ const HomePage: React.FC = () => {
 
     const deleteTask = async (taskId: string) => {
         const deleteTask = await fetcher<any>('todo/delete/' + taskId, 'delete')
-        const result: taskList = (await fetcher<taskList>('todo/get', 'get', { userId: localStorage.getItem('userId') })).data
-        setTaskList(result)
+        // const result: taskList = (await fetcher<taskList>('todo/get', 'get', { userId: localStorage.getItem('userId') })).data
+        // setTaskList(result)
+        getTaskListData()
     }
 
     const changeTask = async (taskId: string) => {
@@ -203,7 +206,7 @@ const HomePage: React.FC = () => {
                 ...prev,
                 _id: taskId,
                 taskName: result[0].taskName,
-                status: result[0].status?._id,
+                status: result[0].status ? result[0].status?._id : '',
                 deadline: result[0].deadline.toString().split('T')[0],
             };
         });
@@ -221,6 +224,7 @@ const HomePage: React.FC = () => {
         await fetcher<any>('todo/status/delete/' + statusId, 'delete')
         const result: statusList = await (await fetcher<statusList>('todo/status/get', 'get', { userId: localStorage.getItem('userId') })).data
         setStatusList(result)
+        getTaskListData()
     }
 
     const changeUpdate = async (statusId: string) => {
@@ -237,6 +241,11 @@ const HomePage: React.FC = () => {
                 color: result[0].color
             };
         });
+    }
+
+    const getTaskListData = async () => {
+        const result: taskList = (await fetcher<taskList>('todo/get', 'get', { userId: localStorage.getItem('userId') })).data
+        setTaskList(result)
     }
 
     return (
@@ -264,17 +273,17 @@ const HomePage: React.FC = () => {
 
                                 // }}
                                 className="h-[120px] flex bg-gray-200" size={4}>
-                                <div className="h-[120px] w-[30px]" style={{ backgroundColor: v.status.color }}></div>
+                                <div className="h-[120px] w-[30px]" style={{ backgroundColor: v.status?.color }}></div>
                                 <div className="flex justify-between w-full p-3">
                                     <div className="flex flex-col justify-between font-bold ">
                                         <div style={{ color: '#1976d2' }} className="text-xl">{v.taskName}</div>
                                         <div>
                                             <span style={{ color: '#1976d2' }}>status: </span>
-                                            {v.status.name}
+                                            {v.status ? v.status.name : 'none'}
                                         </div>
                                         <div>
                                             <span style={{ color: '#1976d2' }}>deadline: </span>
-                                            {v.deadline.toString().split('T')[0]}</div>
+                                            {v.deadline?.toString().split('T')[0]}</div>
                                     </div>
                                     <div className="flex flex-col justify-around items-center">
                                         <SettingsIcon sx={{ color: blue[700] }} onClick={() => { changeTask(v._id) }}></SettingsIcon>
@@ -296,7 +305,7 @@ const HomePage: React.FC = () => {
                         >
                             {dialogStatus === 1 || dialogStatus === 3 ?
                                 <div>
-                                    <FormControl fullWidth>
+                                    <FormControl variant="outlined" fullWidth>
                                         <TextField
                                             required
                                             id="taskName"
@@ -308,12 +317,15 @@ const HomePage: React.FC = () => {
                                             value={taskInfo.taskName}
                                             onChange={taskNameChange}
                                         />
-                                        <InputLabel id="selectStatus">Status</InputLabel>
+                                    </FormControl>
+                                    <FormControl variant="outlined" fullWidth>
+                                        <InputLabel required id="selectStatus">Status</InputLabel>
                                         <Select
+                                            required
                                             labelId="selectStatus"
                                             id="selectStatus"
                                             value={taskInfo.status}
-                                            label=""
+                                            label="Status"
                                             onChange={statusSelectChange}
                                         >
                                             {
@@ -322,12 +334,13 @@ const HomePage: React.FC = () => {
                                                 })
                                             }
                                         </Select>
-                                        <input
-                                            type="date"
-                                            value={taskInfo.deadline}
-                                            onChange={deadlineChange}
-                                        ></input>
                                     </FormControl>
+                                    <input
+                                        required
+                                        type="date"
+                                        value={taskInfo.deadline}
+                                        onChange={deadlineChange}
+                                    ></input>
                                 </div>
                                 :
                                 <div>
@@ -362,7 +375,7 @@ const HomePage: React.FC = () => {
                     open={drawerOpen}
                     onClose={() => { controlDrawer(false) }}
                     anchor={'right'}>
-                    <div className="w-[300px] p-3">
+                    <div className="w-[400px] p-3">
                         <Button variant="contained" onClick={() => { openDialog(2) }}>Add status</Button>
                         {
                             statusList?.map((v, i) => {
@@ -377,7 +390,10 @@ const HomePage: React.FC = () => {
                                             <div style={{ backgroundColor: v.color }} className="w-[40px] h-[16px] ml-3"></div>
                                         </div>
                                     </div>
-                                    <SettingsIcon sx={{ color: blue[700] }} onClick={() => { changeUpdate(v._id) }}></SettingsIcon>
+                                    <div>
+                                        <SettingsIcon sx={{ color: blue[700] }} onClick={() => { changeUpdate(v._id) }}></SettingsIcon>
+                                        <DeleteIcon sx={{ color: blue[700] }} onClick={() => { deleteStatus(v._id) }} className="ml-3"></DeleteIcon>
+                                    </div>
                                     {/* <Button onClick={() => { changeUpdate(v._id) }}>update</Button> */}
                                     {/* <Button onClick={() => { deleteStatus(v._id) }}>delete</Button> */}
                                 </div>
@@ -385,8 +401,10 @@ const HomePage: React.FC = () => {
                         }
                     </div>
                 </Drawer>
-            </div>
-        </div>
+
+                <Toaster />
+            </div >
+        </div >
     )
 
 }
